@@ -77,26 +77,26 @@ ORDER BY "Total Deaths" DESC;
 
 
 --Q5 Average number of deaths by day (Continents and Countries)
--- Average Deaths Per Day by Country
+--Q5 Average number of deaths by day (Continents and Countries)
+WITH daily_deaths AS (
+    SELECT 
+        f."Country/Region",
+        f."Date",
+        w."Continent",
+        f."Deaths" - LAG(f."Deaths") OVER (
+            PARTITION BY f."Country/Region" ORDER BY f."Date"
+        ) AS "Daily Deaths"
+    FROM public."full_grouped" f
+    JOIN public."worldometer_data" w
+    ON f."Country/Region" = w."Country/Region"
+)
 SELECT 
-    f."Country/Region",
-    w."Continent",
-    ROUND(AVG(f."Deaths"), 2) AS "Avg Deaths Per Day"
-FROM public."full_grouped" f
-JOIN public."worldometer_data" w
-ON f."Country/Region" = w."Country/Region"
-GROUP BY f."Country/Region", w."Continent"
-ORDER BY "Avg Deaths Per Day" DESC
-LIMIT 10;
-
---Average Deaths Per Day by Continent
-SELECT 
-    w."Continent",
-    ROUND(AVG(f."Deaths"), 2) AS "Avg Deaths Per Day"
-FROM public."full_grouped" f
-JOIN public."worldometer_data" w
-ON f."Country/Region" = w."Country/Region"
-GROUP BY w."Continent"
+    "Country/Region",
+    "Continent",
+    ROUND(AVG("Daily Deaths"), 2) AS "Avg Deaths Per Day"
+FROM daily_deaths
+WHERE "Daily Deaths" IS NOT NULL
+GROUP BY "Country/Region", "Continent"
 ORDER BY "Avg Deaths Per Day" DESC;
 
 
