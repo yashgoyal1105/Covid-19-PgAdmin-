@@ -37,7 +37,7 @@ ON c."Country/Region" = w."Country/Region"
 WHERE w."Population" IS NOT NULL;
 
 
---Q3 To find out the countries with the highest infection rates
+-- Q3 To find out the countries with the highest infection rates
 SELECT 
     c."Country/Region",
     w."Continent",
@@ -53,7 +53,7 @@ ORDER BY "Infection Rate (%)" DESC
 LIMIT 10;
 
 
---Q4 To find out the countries and continents with the highest death counts
+-- Q4 To find out the countries and continents with the highest death counts
 SELECT 
     c."Country/Region",
     w."Continent",
@@ -76,27 +76,48 @@ GROUP BY w."Continent"
 ORDER BY "Total Deaths" DESC;
 
 
---Q5 Average number of deaths by day (Continents and Countries)
--- Average Deaths Per Day by Country
+-- Q5 Average number of deaths by day (Continents and Countries)
+-- by country
+WITH daily_deaths AS (
+    SELECT 
+        f."Country/Region",
+        f."Date",
+        w."Continent",
+        f."Deaths" - LAG(f."Deaths") OVER (
+            PARTITION BY f."Country/Region" ORDER BY f."Date"
+        ) AS "Daily Deaths"
+    FROM public."full_grouped" f
+    JOIN public."worldometer_data" w
+    ON f."Country/Region" = w."Country/Region"
+)
 SELECT 
-    f."Country/Region",
-    w."Continent",
-    ROUND(AVG(f."Deaths"), 2) AS "Avg Deaths Per Day"
-FROM public."full_grouped" f
-JOIN public."worldometer_data" w
-ON f."Country/Region" = w."Country/Region"
-GROUP BY f."Country/Region", w."Continent"
-ORDER BY "Avg Deaths Per Day" DESC
-LIMIT 10;
+    "Country/Region",
+    "Continent",
+    ROUND(AVG("Daily Deaths"), 2) AS "Avg Deaths Per Day"
+FROM daily_deaths
+WHERE "Daily Deaths" IS NOT NULL
+GROUP BY "Country/Region", "Continent"
+ORDER BY "Avg Deaths Per Day" DESC;
 
---Average Deaths Per Day by Continent
+-- by continent
+WITH daily_deaths AS (
+    SELECT 
+        f."Country/Region",
+        f."Date",
+        w."Continent",
+        f."Deaths" - LAG(f."Deaths") OVER (
+            PARTITION BY f."Country/Region" ORDER BY f."Date"
+        ) AS "Daily Deaths"
+    FROM public."full_grouped" f
+    JOIN public."worldometer_data" w
+    ON f."Country/Region" = w."Country/Region"
+)
 SELECT 
-    w."Continent",
-    ROUND(AVG(f."Deaths"), 2) AS "Avg Deaths Per Day"
-FROM public."full_grouped" f
-JOIN public."worldometer_data" w
-ON f."Country/Region" = w."Country/Region"
-GROUP BY w."Continent"
+    "Continent",
+    ROUND(AVG("Daily Deaths"), 2) AS "Avg Deaths Per Day"
+FROM daily_deaths
+WHERE "Daily Deaths" IS NOT NULL
+GROUP BY "Continent"
 ORDER BY "Avg Deaths Per Day" DESC;
 
 
